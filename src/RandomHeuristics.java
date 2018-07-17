@@ -3,7 +3,7 @@ import java.util.*;
 /**
  * Created by acer on 23.06.2018.
  */
-public class Heuristics extends Det {
+public class RandomHeuristics extends Det {
 
     static int[] setSlotBounds(int T, boolean isBeginOfWorkDay) {
         int[] bounds = new int[T];
@@ -96,10 +96,16 @@ public class Heuristics extends Det {
             int operationIndex;
             for (int k = 0; k < operationsForCurrentSlot.size(); k++) {
                 operationIndex = operationsForCurrentSlot.get(k);
+                //формируем список операций, которые еще можно вместить в данный интервал
+                ArrayList<Integer> CL = new ArrayList<>();
+                double totalWeight = 0;
                 if (!isAssigned[operationIndex] && durations[i] + p[operationIndex] <= B[i] - A[i]) {
-                    durations[i] += p[operationIndex];
+                    CL.add(operationIndex);
+                    totalWeight += w[getGroupByIndex(operationIndex, patientsAndGroups)];
+                    /*durations[i] += p[operationIndex];
                     isAssigned[operationIndex] = true;
                     numberOfAssignedOperations++;
+                    */
                 }
                 if (durations[i] == B[i] - A[i])
                     break;

@@ -13,7 +13,7 @@ public class Det {
     static final int WORK_DAY_LENGTH = 9;
 
     static int shifts = 2;
-    static int weeks = 4;
+    static int weeks = 1;
     static int days = 5;
     static int rooms = 10;
     static int delta1 = 30; //порог увеличения для интервалов первой смены
@@ -170,22 +170,24 @@ public class Det {
             setMainConstraints(A, B, patientsAndGroups, r, d, p, cplex, x, z, ranges);
             System.out.println("Constr4 are set");
 
-            Runtime runtime = Runtime.getRuntime();
-            System.out.println(runtime.totalMemory() - runtime.freeMemory());
             System.out.println("Ready to solve");
             if (cplex.solve()) {
                 cplex.output().println(cplex.getStatus());
                 cplex.output().println(cplex.getObjValue());
-                /*double[] resX     = cplex.getValues(x);
+                double[] resX     = cplex.getValues(x);
+                int zu = 0;
                 for (int i = 0; i < m; i++) {
                     for (int j = 0; j < T; j++) {
-                        System.out.print((int)resX[i * T + j]);
+                        if ((int)resX[i * T + j] == 1)
+                            zu++;
+                        //System.out.print((int)resX[i * T + j]);
                         //System.out.println("Variable x[" + (i + 1) + "][" + (j + 1) + "]: Value = " + resX[i * T + j]);
                     }
-                    System.out.println();
+                    //System.out.println();
                 }
+                System.out.println("количество назначенных пациентов " + zu);
 
-                double[] resZ = cplex.getValues(z);
+                /*double[] resZ = cplex.getValues(z);
                 for (int i = 0; i < T; i++) {
                     System.out.println("z[" + i + "] = " + resZ[i]);
                 }*/

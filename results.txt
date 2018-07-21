@@ -1,2 +1,16 @@
-4.268758286534387E51
-138.92 sec
+Variable x[1][1]: Value = 1.0
+Variable x[2][1]: Value = 1.0
+Variable x[3][2]: Value = 1.0
+Variable x[4][2]: Value = 1.0
+Variable x[5][5]: Value = 1.0
+Variable x[6][5]: Value = 1.0
+Variable x[7][6]: Value = 1.0
+Variable x[8][6]: Value = 1.0
+Variable x[11][7]: Value = 1.0
+Variable x[12][3]: Value = 1.0
+Variable x[14][4]: Value = 1.0
+Variable x[15][4]: Value = 1.0
+Variable x[16][7]: Value = 1.0
+Variable x[17][8]: Value = 1.0
+Variable x[18][8]: Value = 1.0
+Variable x[19][3]: Value = 1.0

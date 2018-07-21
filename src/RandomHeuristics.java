@@ -1,32 +1,38 @@
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Created by acer on 23.06.2018.
  */
 public class RandomHeuristics extends Det {
 
-    static int[] setSlotBounds(int T, boolean isBeginOfWorkDay) {
-        int[] bounds = new int[T];
-        int firstShiftTimeMoment = isBeginOfWorkDay ? FIRST_SHIFT_BEGIN : FIRST_SHIFT_END;
-        int secondShiftTimeMoment = isBeginOfWorkDay ? SECOND_SHIFT_BEGIN : SECOND_SHIFT_END;
+    static void setSlotBounds(int[] A, int[] B, int T, int[] delta, int[] r) {
         int index = 0;
         for (int i = 0; i < weeks; i++) {
             for (int j = 0; j < days; j++) {
                 for (int k = 0; k < rooms; k++) {
                     //первая смена
-                    bounds[index++] =
-                            7 * 24 * 60 * i + 24 * 60 * j + firstShiftTimeMoment * 60;
+                    delta[index] = delta1;
+                    A[index] =
+                            7 * 24 * 60 * i + 24 * 60 * j + FIRST_SHIFT_BEGIN * 60;
+                    B[index++] =
+                            7 * 24 * 60 * i + 24 * 60 * j + FIRST_SHIFT_END * 60;
                 }
-                for (int k = 0; k < rooms; k++ ) {
+                for (int k = 0; k < rooms; k++) {
                     //вторая смена
-                    bounds[index++] =
-                            7 * 24 * 60 * i + 24 * 60 * j + secondShiftTimeMoment * 60;
+                    delta[index] = delta2;
+                    A[index] =
+                            7 * 24 * 60 * i + 24 * 60 * j + SECOND_SHIFT_BEGIN * 60;
+                    B[index++] =
+                            7 * 24 * 60 * i + 24 * 60 * j + SECOND_SHIFT_END * 60;
                 }
+                r[i * days + j] = 7 * 24 * 60 * i + 24 * 60 * j + FIRST_SHIFT_BEGIN * 60;
             }
         }
-        return bounds;
     }
 
+    //здесь N - это словарь с ключами - номерами интервалов,
+    // значениями - списком подходящих для данного интервала операций
     static Map<Integer, ArrayList<Integer>> setN(int[] A, int[] B, int[] r, int[] d, int m, int[] patientsAndGroups, int[] p) {
         int T = A.length;
         Map<Integer, ArrayList<Integer>> N = new HashMap<>();
@@ -38,17 +44,8 @@ public class RandomHeuristics extends Det {
                     N.get(i).add(j);
                 }
             }
-            //сортирует по невозрастанию продолжтельности операции
-            Collections.sort(N.get(i), new Comparator<Integer>() {
-                @Override
-                public int compare(Integer o1, Integer o2) {
-                    if (p[o1] < p[o2])
-                        return 1;
-                    if (p[o1] > p[o2])
-                        return -1;
-                    return 0;
-                }
-            });
+            //сортирует по невозрастанию продолжительности операции
+            Collections.sort(N.get(i), (o1, o2) -> p[o2] - p[o1]);
         }
         return N;
     }
@@ -57,19 +54,20 @@ public class RandomHeuristics extends Det {
         int T = shifts * weeks * days * rooms; //кол-во временных интервалов (2 смены, 5 дней в неделю, 3 комнаты)
         System.out.println("Кол-во временных интервалов: T = " + T);
 
-        //в качестве единиц измерения берем минуты
-        int[] A = setSlotBounds(T, true); //начальные моменты интервалов
-        int[] B = setSlotBounds(T, false); //конечные моменты интервалов
+        int[] delta = new int[T];
+        int G = weeks * days; //кол-во групп
+        int[] r = new int[G];
+        int[] A = new int[T];
+        int[] B = new int[T];
+        setSlotBounds(A, B, T, delta, r);
 
         int[] c = setCostPerUnitTimeOfExtension(T); //стоимость единицы времени увеличения
-        int G = weeks * days; //кол-во групп
 
         int[] n = setNumberOfPatientsInGroups(G); //кол-во пациентов в группах
         int m = getTotalNumberOfPatients(n); //кол-во операций
         int[] patientsAndGroups = getGroupsForPatients(m, n);
         System.out.println("Кол-во операций m = " + m);
 
-        int[] r = setReadyDates(G, A); //сроки готовности для группы операций
         int[] d = setDueDates(r); //конечные сроки
 
         double[] w = setOperationsWeights(n); //веса групп операций
@@ -78,12 +76,12 @@ public class RandomHeuristics extends Det {
 
         Map<Integer, ArrayList<Integer>> N = setN(A, B, r, d, m, patientsAndGroups, p);
 
-        /*for (Map.Entry<Integer, ArrayList<Integer>> entry: N.entrySet()) {
+        for (Map.Entry<Integer, ArrayList<Integer>> entry: N.entrySet()) {
             System.out.print(entry.getKey() + ": ");
             for (Integer v: entry.getValue())
                 System.out.print(v + " ");
             System.out.println();
-        }*/
+        }
 
         boolean[] isAssigned = new boolean[m];
         int[] durations = new int[T];
@@ -91,25 +89,26 @@ public class RandomHeuristics extends Det {
 
         for (int i = 0; i < T; i++) {
             ArrayList<Integer> operationsForCurrentSlot = N.get(i);
-            //k - порядковый номер операции в массиве, но не действительный номер операции
-            //действительный номер операции
-            int operationIndex;
-            for (int k = 0; k < operationsForCurrentSlot.size(); k++) {
-                operationIndex = operationsForCurrentSlot.get(k);
-                //формируем список операций, которые еще можно вместить в данный интервал
-                ArrayList<Integer> CL = new ArrayList<>();
-                double totalWeight = 0;
-                if (!isAssigned[operationIndex] && durations[i] + p[operationIndex] <= B[i] - A[i]) {
-                    CL.add(operationIndex);
-                    totalWeight += w[getGroupByIndex(operationIndex, patientsAndGroups)];
-                    /*durations[i] += p[operationIndex];
-                    isAssigned[operationIndex] = true;
-                    numberOfAssignedOperations++;
-                    */
-                }
-                if (durations[i] == B[i] - A[i])
-                    break;
+            Set<Integer> CL = operationsForCurrentSlot.stream()
+                    .filter(op -> !isAssigned[op])
+                    .collect(Collectors.toSet());
+
+            while (!CL.isEmpty()) {
+                //выбираем случайным образом операцию
+                int operationIndex = getRandomOperation(w, CL, patientsAndGroups);
+                //ставим ее на интервал
+                durations[i] += p[operationIndex];
+                isAssigned[operationIndex] = true;
+                numberOfAssignedOperations++;
+                System.out.println("Variable x[" + (operationIndex + 1) + "][" + (i + 1) + "]: Value = " + 1);
+                //проходим по всем операциям из CL и удаляем операции, которые уже не влезут в интервал
+                CL.remove(operationIndex);
+                final int dur = durations[i];
+                final int start = A[i];
+                final int finish = B[i];
+                CL = CL.stream().filter(op -> dur + p[op] > finish - start).collect(Collectors.toSet());
             }
+
             if (numberOfAssignedOperations == m)
                 break;
         }
@@ -120,16 +119,8 @@ public class RandomHeuristics extends Det {
             for (int i = 0; i < m; i++)
                 if (!isAssigned[i])
                     operationsNumbers.add(i);
-            Collections.sort(operationsNumbers, new Comparator<Integer>() {
-                @Override
-                public int compare(Integer o1, Integer o2) {
-                    if (w[o1] < w[o2])
-                        return 1;
-                    if (w[o1] > w[o2])
-                        return -1;
-                    return 0;
-                }
-            });
+            Collections.sort(operationsNumbers, (o1, o2) ->
+                    (int)(w[getGroupByIndex(o2, patientsAndGroups)] - w[getGroupByIndex(o1, patientsAndGroups)]));
 
             int totalCost = 0;
             for (int operation: operationsNumbers) {
@@ -138,7 +129,8 @@ public class RandomHeuristics extends Det {
                 for (int i = 0; i < T; i++) {
                     //если операцию можно назначить на этот интервал
                     if (d[getGroupByIndex(operation, patientsAndGroups)] >= A[i] &&
-                            B[i] >= r[getGroupByIndex(operation, patientsAndGroups)]) {
+                            B[i] >= r[getGroupByIndex(operation, patientsAndGroups)] &&
+                            durations[i] + p[operation] - B[i] + A[i] <= delta[i]) {
                         int cost = (durations[i] + p[operation] - B[i] + A[i]) * c[i];
                         if (minCost == 0 || cost < minCost) {
                             minCost = cost;
@@ -149,6 +141,7 @@ public class RandomHeuristics extends Det {
                 if (index != -1 && minCost + totalCost <= C) {
                     totalCost += minCost;
                     isAssigned[index] = true;
+                    numberOfAssignedOperations++;
                 }
                 else
                     break;
@@ -159,7 +152,22 @@ public class RandomHeuristics extends Det {
             if (isAssigned[i])
                 objectiveFunctionValue += w[getGroupByIndex(i, patientsAndGroups)];
         }
+        System.out.println("Количество назначенных пациентов: " + numberOfAssignedOperations);
         System.out.println(objectiveFunctionValue);
 
+    }
+
+    static int getRandomOperation(double[] w, Set<Integer> CL, int[] patientsAndGroups) {
+        double totalWeight = CL.stream().mapToDouble(op -> w[getGroupByIndex(op, patientsAndGroups)]).sum();
+        List<Double> probabilities = CL.stream()
+                .map(op -> w[getGroupByIndex(op, patientsAndGroups)] / totalWeight)
+                .collect(Collectors.toList());
+        double r = Math.random();
+        int i = 0;
+        double s = probabilities.get(0);
+        while (i < CL.size() && !(r < s)) {
+            s += probabilities.get(++i);
+        }
+        return 0;
     }
 }

@@ -15,7 +15,7 @@ public class Det {
     static int shifts = 2;
     static int weeks = 1;
     static int days = 5;
-    static int rooms = 10;
+    static int rooms = 2;
     static int delta1 = 30; //порог увеличения для интервалов первой смены
     static int delta2 = 90; //второй смены
     static int C = 10000; //порог стоимости увеличения
@@ -199,7 +199,7 @@ public class Det {
                     }
                     double res = duration > B[j] ? duration - B[j] : 0;
                     System.out.println("z[" + j + "] = " + res);
-                }*/
+                }/*
 
                 /*double[] slacks = cplex.getSlacks(ranges.toArray(new IloRange[ranges.size()]));
                 for (int i = 0; i < slacks.length; i++)
@@ -230,15 +230,17 @@ public class Det {
                             ranges.add(cplex.addLe(
                                     cplex.diff(
                                             cplex.sum(Math.max(A[i], r[getGroupByIndex(k, patientsAndGroups)]), duration),
-                                            cplex.sum(B[i], z[i])
+                                            cplex.sum(Math.min(B[i], d[getGroupByIndex(l, patientsAndGroups)]),
+                                                    z[B[i] <= d[getGroupByIndex(l, patientsAndGroups)] ? i :
+                                                            weeks * days * rooms + rooms * getGroupByIndex(l, patientsAndGroups)])
                                     ),
                                     0));
                         /*else
                             ranges.add(cplex.addEq(z[i], 0));*/
 
-                        ranges.add(cplex.addLe(
+                        /*ranges.add(cplex.addLe(
                                 cplex.sum(Math.max(A[i], r[getGroupByIndex(k, patientsAndGroups)]), duration),
-                                d[getGroupByIndex(l, patientsAndGroups)]));
+                                d[getGroupByIndex(l, patientsAndGroups)]));*/
                     }
                 }
             }

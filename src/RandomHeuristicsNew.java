@@ -1,10 +1,10 @@
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Collections;
 
 /**
  * Created by acer on 23.06.2018.
  */
-public class RandomHeuristics extends Det {
+public class RandomHeuristicsNew extends Det {
 
     static void setSlotBounds(int[] A, int[] B, int T, int[] delta, int[] r) {
         int index = 0;
@@ -31,24 +31,30 @@ public class RandomHeuristics extends Det {
         }
     }
 
-    //здесь N - это словарь с ключами - номерами интервалов,
-    // значениями - списком подходящих для данного интервала операций
-    static Map<Integer, ArrayList<Integer>> setN(int[] A, int[] B, int[] r, int[] d, int m, int[] patientsAndGroups, int[] p) {
+    static ArrayList<Slot> setN(int[] A, int[] B, int[] r, int[] d, int m, int[] patientsAndGroups, int[] p) {
         int T = A.length;
-        Map<Integer, ArrayList<Integer>> N = new HashMap<>();
+        ArrayList<Slot> N = new ArrayList<>();
         for (int i = 0; i < T; i++) {
-            N.put(i, new ArrayList<>());
-            for (int j = 0; j < m; j++) {
-                if (d[getGroupByIndex(j, patientsAndGroups)] >= A[i] &&
-                        B[i] >= r[getGroupByIndex(j, patientsAndGroups)]) {
-                    N.get(i).add(j);
+            if (i == 0 || A[i] != A[i - 1] || B[i] != B[i - 1]) {
+                Slot currentSlot = new Slot(A[i], B[i]);
+                currentSlot.timeSlotsIndexes.add(i);
+                N.add(currentSlot);
+                for (int j = 0; j < m; j++) {
+                    if (d[getGroupByIndex(j, patientsAndGroups)] >= A[i] &&
+                            B[i] >= r[getGroupByIndex(j, patientsAndGroups)]) {
+                        currentSlot.operationsIndexes.add(j);
+                    }
                 }
+                //сортирует по невозрастанию продолжительности операции
+                Collections.sort(currentSlot.operationsIndexes, (o1, o2) -> p[o2] - p[o1]);
             }
-            //сортирует по невозрастанию продолжительности операции
-            Collections.sort(N.get(i), (o1, o2) -> p[o2] - p[o1]);
+            else {
+                N.get(N.size() - 1).timeSlotsIndexes.add(i);
+            }
         }
         return N;
     }
+
 
     public static void main(String[] args) {
         int T = shifts * weeks * days * rooms; //кол-во временных интервалов (2 смены, 5 дней в неделю, 3 комнаты)
@@ -74,41 +80,30 @@ public class RandomHeuristics extends Det {
 
         int[] p = setOperationsTimes(m);
 
-        Map<Integer, ArrayList<Integer>> N = setN(A, B, r, d, m, patientsAndGroups, p);
-
-        for (Map.Entry<Integer, ArrayList<Integer>> entry: N.entrySet()) {
-            System.out.print(entry.getKey() + ": ");
-            for (Integer v: entry.getValue())
-                System.out.print(v + " ");
-            System.out.println();
-        }
+        ArrayList<Slot> N = setN(A, B, r, d, m, patientsAndGroups, p);
 
         boolean[] isAssigned = new boolean[m];
         int[] durations = new int[T];
         int numberOfAssignedOperations = 0;
-
-        for (int i = 0; i < T; i++) {
-            ArrayList<Integer> operationsForCurrentSlot = N.get(i);
-            Set<Integer> CL = operationsForCurrentSlot.stream()
-                    .filter(op -> !isAssigned[op])
-                    .collect(Collectors.toSet());
-
-            while (!CL.isEmpty()) {
-                //выбираем случайным образом операцию
-                int operationIndex = getRandomOperation(w, new ArrayList<>(CL), patientsAndGroups);
-                //ставим ее на интервал
-                durations[i] += p[operationIndex];
-                isAssigned[operationIndex] = true;
-                numberOfAssignedOperations++;
-                System.out.println("Variable x[" + (operationIndex + 1) + "][" + (i + 1) + "]: Value = " + 1);
-                //проходим по всем операциям из CL и удаляем операции, которые уже не влезут в интервал
-                CL.remove(operationIndex);
-                final int dur = durations[i];
-                final int start = A[i];
-                final int finish = B[i];
-                CL = CL.stream().filter(op -> dur + p[op] > finish - start).collect(Collectors.toSet());
+        for (Slot slot: N) {
+            int currentTimeSlot = 0;
+            for (int operation: slot.operationsIndexes) {
+                if (!isAssigned[operation]) {
+                    int iter = 0;
+                    do {
+                        int t = slot.timeSlotsIndexes.get(currentTimeSlot);
+                        if (durations[t] + p[operation] <= B[t] - A[t]) {
+                            durations[t] += p[operation];
+                            isAssigned[operation] = true;
+                            numberOfAssignedOperations++;
+                            if (++currentTimeSlot == slot.timeSlotsIndexes.size())
+                                currentTimeSlot = 0;
+                            break;
+                        }
+                        else iter++;
+                    } while (iter < slot.timeSlotsIndexes.size());
+                }
             }
-
             if (numberOfAssignedOperations == m)
                 break;
         }
@@ -147,6 +142,7 @@ public class RandomHeuristics extends Det {
                     break;
             }
         }
+
         double objectiveFunctionValue = 0;
         for  (int i = 0; i < m; i++) {
             if (isAssigned[i])
@@ -154,20 +150,18 @@ public class RandomHeuristics extends Det {
         }
         System.out.println("Количество назначенных пациентов: " + numberOfAssignedOperations);
         System.out.println(objectiveFunctionValue);
-
     }
 
-    static int getRandomOperation(double[] w, List<Integer> CL, int[] patientsAndGroups) {
-        double totalWeight = CL.stream().mapToDouble(op -> w[getGroupByIndex(op, patientsAndGroups)]).sum();
-        List<Double> probabilities = CL.stream()
-                .map(op -> w[getGroupByIndex(op, patientsAndGroups)] / totalWeight)
-                .collect(Collectors.toList());
-        double r = Math.random();
-        int i = 0;
-        double s = probabilities.get(0);
-        while (i < CL.size() && !(r < s)) {
-            s += probabilities.get(++i);
+    static class Slot {
+        int A;
+        int B;
+        ArrayList<Integer> timeSlotsIndexes = new ArrayList<>();
+        ArrayList<Integer> operationsIndexes = new ArrayList<>();
+
+        public Slot(int a, int b) {
+            A = a;
+            B = b;
         }
-        return CL.get(i);
+
     }
 }

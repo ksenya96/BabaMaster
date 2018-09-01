@@ -1,37 +1,11 @@
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.*;
 
 /**
  * Created by acer on 23.06.2018.
  */
-public class RandomHeuristicsNew extends Det {
+public class NewHeuristics extends Heuristics {
 
-    static void setSlotBounds(int[] A, int[] B, int T, int[] delta, int[] r) {
-        int index = 0;
-        for (int i = 0; i < weeks; i++) {
-            for (int j = 0; j < days; j++) {
-                for (int k = 0; k < rooms; k++) {
-                    //первая смена
-                    delta[index] = delta1;
-                    A[index] =
-                            7 * 24 * 60 * i + 24 * 60 * j + FIRST_SHIFT_BEGIN * 60;
-                    B[index++] =
-                            7 * 24 * 60 * i + 24 * 60 * j + FIRST_SHIFT_END * 60;
-                }
-                for (int k = 0; k < rooms; k++) {
-                    //вторая смена
-                    delta[index] = delta2;
-                    A[index] =
-                            7 * 24 * 60 * i + 24 * 60 * j + SECOND_SHIFT_BEGIN * 60;
-                    B[index++] =
-                            7 * 24 * 60 * i + 24 * 60 * j + SECOND_SHIFT_END * 60;
-                }
-                r[i * days + j] = 7 * 24 * 60 * i + 24 * 60 * j + FIRST_SHIFT_BEGIN * 60;
-            }
-        }
-    }
-
-    static ArrayList<Slot> setN(int[] A, int[] B, int[] r, int[] d, int m, int[] patientsAndGroups, int[] p) {
+    static ArrayList<Slot> setNewN(int[] A, int[] B, int[] r, int[] d, int m, int[] patientsAndGroups, int[] p) {
         int T = A.length;
         ArrayList<Slot> N = new ArrayList<>();
         for (int i = 0; i < T; i++) {
@@ -80,11 +54,14 @@ public class RandomHeuristicsNew extends Det {
 
         int[] p = setOperationsTimes(m);
 
-        ArrayList<Slot> N = setN(A, B, r, d, m, patientsAndGroups, p);
+
+        ArrayList<Slot> N = setNewN(A, B, r, d, m, patientsAndGroups, p);
 
         boolean[] isAssigned = new boolean[m];
         int[] durations = new int[T];
         int numberOfAssignedOperations = 0;
+
+        Date date = new Date();
         for (Slot slot: N) {
             int currentTimeSlot = 0;
             for (int operation: slot.operationsIndexes) {
@@ -92,12 +69,13 @@ public class RandomHeuristicsNew extends Det {
                     int iter = 0;
                     do {
                         int t = slot.timeSlotsIndexes.get(currentTimeSlot);
+                        //если перебрали все интервалы, начинаем сначала
+                        if (++currentTimeSlot == slot.timeSlotsIndexes.size())
+                            currentTimeSlot = 0;
                         if (durations[t] + p[operation] <= B[t] - A[t]) {
                             durations[t] += p[operation];
                             isAssigned[operation] = true;
                             numberOfAssignedOperations++;
-                            if (++currentTimeSlot == slot.timeSlotsIndexes.size())
-                                currentTimeSlot = 0;
                             break;
                         }
                         else iter++;
@@ -150,6 +128,7 @@ public class RandomHeuristicsNew extends Det {
         }
         System.out.println("Количество назначенных пациентов: " + numberOfAssignedOperations);
         System.out.println(objectiveFunctionValue);
+        System.out.println("Время работы программы: " + (new Date().getTime() - date.getTime()) + " ms");
     }
 
     static class Slot {
@@ -158,9 +137,9 @@ public class RandomHeuristicsNew extends Det {
         ArrayList<Integer> timeSlotsIndexes = new ArrayList<>();
         ArrayList<Integer> operationsIndexes = new ArrayList<>();
 
-        public Slot(int a, int b) {
-            A = a;
-            B = b;
+        public Slot(int A, int B) {
+            this.A = A;
+            this.B = B;
         }
 
     }

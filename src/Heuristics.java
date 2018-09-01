@@ -13,19 +13,19 @@ public class Heuristics extends Det {
                     //первая смена
                     delta[index] = delta1;
                     A[index] =
-                            7 * 24 * 60 * i + 24 * 60 * j + FIRST_SHIFT_BEGIN * 60;
+                            7 * 24 * 60 * i + 24 * 60 * j + FIRST_SHIFT_START_TIME * 60;
                     B[index++] =
-                            7 * 24 * 60 * i + 24 * 60 * j + FIRST_SHIFT_END * 60;
+                            7 * 24 * 60 * i + 24 * 60 * j + FIRST_SHIFT_END_TIME * 60;
                 }
                 for (int k = 0; k < rooms; k++) {
                     //вторая смена
                     delta[index] = delta2;
                     A[index] =
-                            7 * 24 * 60 * i + 24 * 60 * j + SECOND_SHIFT_BEGIN * 60;
+                            7 * 24 * 60 * i + 24 * 60 * j + SECOND_SHIFT_START_TIME * 60;
                     B[index++] =
-                            7 * 24 * 60 * i + 24 * 60 * j + SECOND_SHIFT_END * 60;
+                            7 * 24 * 60 * i + 24 * 60 * j + SECOND_SHIFT_END_TIME * 60;
                 }
-                r[i * days + j] = 7 * 24 * 60 * i + 24 * 60 * j + FIRST_SHIFT_BEGIN * 60;
+                r[i * days + j] = 7 * 24 * 60 * i + 24 * 60 * j + FIRST_SHIFT_START_TIME * 60;
             }
         }
     }
@@ -75,17 +75,18 @@ public class Heuristics extends Det {
 
         Map<Integer, ArrayList<Integer>> N = setN(A, B, r, d, m, patientsAndGroups, p);
 
-        for (Map.Entry<Integer, ArrayList<Integer>> entry: N.entrySet()) {
+        /*for (Map.Entry<Integer, ArrayList<Integer>> entry: N.entrySet()) {
             System.out.print(entry.getKey() + ": ");
             for (Integer v: entry.getValue())
                 System.out.print(v + " ");
             System.out.println();
-        }
+        }*/
 
         boolean[] isAssigned = new boolean[m];
         int[] durations = new int[T];
         int numberOfAssignedOperations = 0;
 
+        Date date = new Date();
         for (int i = 0; i < T; i++) {
             ArrayList<Integer> operationsForCurrentSlot = N.get(i);
             for (int operationIndex: operationsForCurrentSlot) {
@@ -93,7 +94,7 @@ public class Heuristics extends Det {
                     durations[i] += p[operationIndex];
                     isAssigned[operationIndex] = true;
                     numberOfAssignedOperations++;
-                    System.out.println("Variable x[" + (operationIndex + 1) + "][" + (i + 1) + "]: Value = " + 1);
+                    //System.out.println("Variable x[" + (operationIndex + 1) + "][" + (i + 1) + "]: Value = " + 1);
                 }
                 if (durations[i] == B[i] - A[i])
                     break;
@@ -104,16 +105,16 @@ public class Heuristics extends Det {
 
         if (numberOfAssignedOperations < m) {
             //сортируем оставшиеся операции в порядке невозрастания их весов
-            ArrayList<Integer> operationsNumbers = new ArrayList<>();
+            ArrayList<Integer> operationsIndexes = new ArrayList<>();
             for (int i = 0; i < m; i++)
                 if (!isAssigned[i])
-                    operationsNumbers.add(i);
+                    operationsIndexes.add(i);
 
-            Collections.sort(operationsNumbers, (o1, o2) ->
+            Collections.sort(operationsIndexes, (o1, o2) ->
                     (int)(w[getGroupByIndex(o2, patientsAndGroups)] - w[getGroupByIndex(o1, patientsAndGroups)]));
 
             int totalCost = 0;
-            for (int operation: operationsNumbers) {
+            for (int operation: operationsIndexes) {
                 int minCost = 0;
                 int index = -1;
                 for (int i = 0; i < T; i++) {
@@ -143,7 +144,7 @@ public class Heuristics extends Det {
                 objectiveFunctionValue += w[getGroupByIndex(i, patientsAndGroups)];
         }
         System.out.println("Количество назначенных пациентов: " + numberOfAssignedOperations);
-        System.out.println(objectiveFunctionValue);
-
+        System.out.println("Optimal: " + objectiveFunctionValue);
+        System.out.println("Время работы программы: " + (new Date().getTime() - date.getTime()) + " ms");
     }
 }

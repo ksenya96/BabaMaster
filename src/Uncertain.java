@@ -2,7 +2,6 @@ import ilog.concert.*;
 import ilog.cplex.IloCplex;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 
 /**
  * Created by acer on 03.08.2018.
@@ -12,9 +11,9 @@ public class Uncertain extends ExtDetAlt {
     static int[][] setOperationsTimes(int s, int m) {
         int[][] p = new int[s][m];
         for (int i = 0; i < m; i++) {
-            p[0][i] = FIRST_SHIFT_END - FIRST_SHIFT_BEGIN;
-            p[1][i] = FIRST_SHIFT_END - FIRST_SHIFT_BEGIN / 2;
-            p[2][i] = (FIRST_SHIFT_END - FIRST_SHIFT_BEGIN) / 3;
+            p[0][i] = FIRST_SHIFT_END_TIME - FIRST_SHIFT_START_TIME;
+            p[1][i] = FIRST_SHIFT_END_TIME - FIRST_SHIFT_START_TIME / 2;
+            p[2][i] = (FIRST_SHIFT_END_TIME - FIRST_SHIFT_START_TIME) / 3;
             p[3][i] = 20;
         }
         return p;

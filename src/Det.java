@@ -6,24 +6,24 @@ import java.util.Arrays;
 
 public class Det {
 
-    static final int FIRST_SHIFT_BEGIN = 8;
-    static final int FIRST_SHIFT_END = 12;
-    static final int SECOND_SHIFT_BEGIN = 13;
-    static final int SECOND_SHIFT_END = 17;
-    static final int WORK_DAY_LENGTH = 9;
+    static final int FIRST_SHIFT_START_TIME = 8;
+    static final int FIRST_SHIFT_END_TIME = 12;
+    static final int SECOND_SHIFT_START_TIME = 13;
+    static final int SECOND_SHIFT_END_TIME = 17;
+    static final int WORKING_HOURS = 9;
 
     static int shifts = 2;
-    static int weeks = 1;
+    static int weeks = 4;
     static int days = 5;
-    static int rooms = 2;
+    static int rooms = 5;
     static int delta1 = 30; //порог увеличения для интервалов первой смены
     static int delta2 = 90; //второй смены
-    static int C = 10000; //порог стоимости увеличения
+    static int C = 0; //порог стоимости увеличения
 
     static int[] setSlotBounds(int T, boolean isBeginOfWorkDay) {
         int[] bounds = new int[T];
-        int firstShiftTimeMoment = isBeginOfWorkDay ? FIRST_SHIFT_BEGIN : FIRST_SHIFT_END;
-        int secondShiftTimeMoment = isBeginOfWorkDay ? SECOND_SHIFT_BEGIN : SECOND_SHIFT_END;
+        int firstShiftTimeMoment = isBeginOfWorkDay ? FIRST_SHIFT_START_TIME : FIRST_SHIFT_END_TIME;
+        int secondShiftTimeMoment = isBeginOfWorkDay ? SECOND_SHIFT_START_TIME : SECOND_SHIFT_END_TIME;
         for (int i = 0; i < weeks; i++) {
             for (int j = 0; j < days; j++) {
                 for (int k = 0; k < rooms; k++) {
@@ -48,7 +48,7 @@ public class Det {
     static int[] setNumberOfPatientsInGroups(int G) {
         int[] n = new int[G];
         for (int i = 0; i < G; i++) {
-            n[i] = 10; //rooms * 5;//random.nextInt(rooms) + 1;
+            n[i] = 15; //rooms * 5;//random.nextInt(rooms) + 1;
         }
         return n;
     }
@@ -72,7 +72,7 @@ public class Det {
         int G = r.length;
         int[] d = new int[G];
         for (int i = 0; i < G; i++) {
-            d[i] = r[i] + WORK_DAY_LENGTH * 60; // 9 часов рабочий день
+            d[i] = r[i] + WORKING_HOURS * 60; // 9 часов рабочий день
         }
         return d;
     }
@@ -98,7 +98,7 @@ public class Det {
                 p[i] = 20;
             else
                 p[i] = 100;*/
-            p[i] = 100;
+            p[i] = 200;
         }
         return p;
     }
@@ -186,6 +186,7 @@ public class Det {
                     //System.out.println();
                 }
                 System.out.println("количество назначенных пациентов " + zu);
+                System.out.println(cplex.getMIPRelativeGap());
 
                 /*double[] resZ = cplex.getValues(z);
                 for (int i = 0; i < T; i++) {

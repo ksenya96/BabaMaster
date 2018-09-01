@@ -80,15 +80,19 @@ public class ExtDetAlt extends DetAlt {
                 cplex.output().println(cplex.getStatus());
                 cplex.output().println(cplex.getObjValue());
                 double[] resX     = cplex.getValues(x);
-                /*for (int i = 0; i < m; i++) {
+                int zu = 0;
+                for (int i = 0; i < m; i++) {
                     for (int j = 0; j < T; j++) {
-                        System.out.print((int)resX[i * T + j]);
+                        if ((int)resX[i * T + j] == 1)
+                            zu++;
+                        //System.out.print((int)resX[i * T + j]);
                         //System.out.println("Variable x[" + (i + 1) + "][" + (j + 1) + "]: Value = " + resX[i * T + j]);
                     }
-                    System.out.println();
+                    //System.out.println();
                 }
+                System.out.println("количество назначенных пациентов " + zu);
 
-                double[] resZ = cplex.getValues(z);
+                /*double[] resZ = cplex.getValues(z);
                 for (int i = 0; i < T; i++) {
                     System.out.println("z[" + i + "] = " + resZ[i]);
                 }*/

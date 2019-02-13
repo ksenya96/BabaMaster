@@ -13,8 +13,8 @@ public class Det {
     static final int WORKING_HOURS = 9;
 
     static int shifts = 2;
-    static int weeks = 4;
-    static int days = 5;
+    static int weeks = 1;
+    static int days = 2;
     static int rooms = 5;
     static int delta1 = 30; //порог увеличения для интервалов первой смены
     static int delta2 = 90; //второй смены
@@ -48,15 +48,16 @@ public class Det {
     static int[] setNumberOfPatientsInGroups(int G) {
         int[] n = new int[G];
         for (int i = 0; i < G; i++) {
-            n[i] = 15; //rooms * 5;//random.nextInt(rooms) + 1;
+            n[i] = 5; //rooms * 5;//random.nextInt(rooms) + 1;
         }
         return n;
     }
 
     static int getTotalNumberOfPatients(int[] n) {
         int m = 0;
-        for (int i = 0; i < n.length; i++)
+        for (int i = 0; i < n.length; i++) {
             m += n[i];
+        }
         return m;
     }
 
@@ -82,10 +83,11 @@ public class Det {
         double[] w = new double[G];
         w[G - 1] = 1;
         for (int i = G - 2; i >= 0; i--) {
-            if (i == G - 2)
+            if (i == G - 2) {
                 w[i] = w[i + 1] * n[i + 1] + 1;
-            else
+            } else {
                 w[i] = w[i + 1] + w[i + 1] * n[i + 1];
+            }
         }
         return w;
     }
@@ -174,12 +176,13 @@ public class Det {
             if (cplex.solve()) {
                 cplex.output().println(cplex.getStatus());
                 cplex.output().println(cplex.getObjValue());
-                double[] resX     = cplex.getValues(x);
+                double[] resX = cplex.getValues(x);
                 int zu = 0;
                 for (int i = 0; i < m; i++) {
                     for (int j = 0; j < T; j++) {
-                        if ((int)resX[i * T + j] == 1)
+                        if ((int) resX[i * T + j] == 1) {
                             zu++;
+                        }
                         //System.out.print((int)resX[i * T + j]);
                         //System.out.println("Variable x[" + (i + 1) + "][" + (j + 1) + "]: Value = " + resX[i * T + j]);
                     }
@@ -210,8 +213,7 @@ public class Det {
             }
             cplex.exportModel("mipex1.lp");
             cplex.end();
-        }
-        catch (IloException e) {
+        } catch (IloException e) {
             System.err.println("Concert exception caught " + e);
         }
     }
@@ -222,20 +224,20 @@ public class Det {
         for (int i = 0; i < T; i++) {
             for (int k = 0; k < m; k++) {
                 if (r[getGroupByIndex(k, patientsAndGroups)] + p[k] <= B[i] &&
-                        d[getGroupByIndex(k, patientsAndGroups)] - p[k] >= A[i]) {
+                    d[getGroupByIndex(k, patientsAndGroups)] - p[k] >= A[i]) {
                     IloLinearIntExpr duration = cplex.linearIntExpr();
                     for (int l = k; l < m; l++) {
                         duration.addTerm(p[l], x[l * T + i]);
 
                         //if (B[i] != d[getGroupByIndex(l, patientsAndGroups)])
-                            ranges.add(cplex.addLe(
-                                    cplex.diff(
-                                            cplex.sum(Math.max(A[i], r[getGroupByIndex(k, patientsAndGroups)]), duration),
-                                            cplex.sum(Math.min(B[i], d[getGroupByIndex(l, patientsAndGroups)]),
-                                                    z[B[i] <= d[getGroupByIndex(l, patientsAndGroups)] ? i :
-                                                            weeks * days * rooms + rooms * getGroupByIndex(l, patientsAndGroups)])
-                                    ),
-                                    0));
+                        ranges.add(cplex.addLe(
+                                cplex.diff(
+                                        cplex.sum(Math.max(A[i], r[getGroupByIndex(k, patientsAndGroups)]), duration),
+                                        cplex.sum(Math.min(B[i], d[getGroupByIndex(l, patientsAndGroups)]),
+                                                z[B[i] <= d[getGroupByIndex(l, patientsAndGroups)] ? i :
+                                                        weeks * days * rooms + rooms * getGroupByIndex(l, patientsAndGroups)])
+                                ),
+                                0));
                         /*else
                             ranges.add(cplex.addEq(z[i], 0));*/
 
@@ -281,7 +283,7 @@ public class Det {
         IloLinearNumExpr objectiveFunction = cplex.linearNumExpr();
         for (int i = 0; i < m; i++) {
             for (int j = 0; j < T; j++) {
-                    objectiveFunction.addTerm(w[getGroupByIndex(i, patientsAndGroups)], x[i * T + j]);
+                objectiveFunction.addTerm(w[getGroupByIndex(i, patientsAndGroups)], x[i * T + j]);
             }
         }
         cplex.addMaximize(objectiveFunction);
@@ -300,8 +302,9 @@ public class Det {
         IloNumVarType[] zTypes = new IloNumVarType[T];
         Arrays.fill(zTypes, IloNumVarType.Float);
         String[] names = new String[T];
-        for (int i = 0; i < T; i++)
+        for (int i = 0; i < T; i++) {
             names[i] = "z(" + (i + 1) + ")";
+        }
         return cplex.numVarArray(T, zLowerBounds, zUpperBounds, zTypes, names);
     }
 

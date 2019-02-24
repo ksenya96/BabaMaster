@@ -85,13 +85,13 @@ public class LocalSearch extends Heuristics {
             System.out.println(fitnessFunctionValues[i] + " " + patients);
         }*/
 
-        for (int iter = 0; iter < 100; iter++) {
+        for (int iter = 0; iter < 1000; iter++) {
             //вычисление вероятностей выбора решений из популяции
             double sumFitnessFunctionValues = Arrays.stream(fitnessFunctionValues).sum() - fitnessFunctionValues[numberOfSolutions];
             double[] pr = Arrays.stream(fitnessFunctionValues).map((v) -> v / sumFitnessFunctionValues).limit(numberOfSolutions).toArray();
             int parentSolution1 = getRandomValue(pr);
             int parentSolution2 = getRandomValue(pr);
-            System.out.println(parentSolution1 + " " + parentSolution2);
+            //System.out.println(parentSolution1 + " " + parentSolution2);
 
             //скрещивание
             List<List<Byte>> newSolution = crossover(T, m, x, parentSolution1, parentSolution2);
@@ -111,7 +111,7 @@ public class LocalSearch extends Heuristics {
             }
             x.remove(minIndex);
             fitnessFunctionValues[minIndex] = fitnessFunctionValues[numberOfSolutions];
-            System.out.println(Arrays.stream(fitnessFunctionValues).max().getAsDouble());
+            //System.out.println(Arrays.stream(fitnessFunctionValues).max().getAsDouble());
         }
 
     }
@@ -125,7 +125,7 @@ public class LocalSearch extends Heuristics {
             }
         }
         Random random = new Random();
-        for (int i = 0; i < m; i++) {
+        /*for (int i = 0; i < m; i++) {
             int parent1Flag = -1;
             int parent2Flag = -1;
             for (int j = 0; j < T; j++){
@@ -144,6 +144,17 @@ public class LocalSearch extends Heuristics {
                 if (parent2Flag > -1) {
                     newSolution.get(i).set(parent2Flag, (byte)1);
                 }
+            }
+        }*/
+        int k = random.nextInt(m - 1);
+        for (int i = 0; i <= k; i++) {
+            for (int j = 0; j < T; j++) {
+                newSolution.get(i).set(j, x.get(parentSolution1).get(i).get(j));
+            }
+        }
+        for (int i = k + 1; i < m; i++) {
+            for (int j = 0; j < T; j++) {
+                newSolution.get(i).set(j, x.get(parentSolution2).get(i).get(j));
             }
         }
         return newSolution;

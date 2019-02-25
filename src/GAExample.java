@@ -1,14 +1,14 @@
-import ilog.concert.IloException;
+/*import ilog.concert.IloException;
 import ilog.concert.IloIntVar;
 import ilog.concert.IloLinearIntExpr;
-import ilog.cplex.IloCplex;
+import ilog.cplex.IloCplex;*/
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-public class GAExample {
+public class GAExample extends Heuristics {
     public static void main(String[] args) {
         int n = 5;
         double[][] c = new double[n][n];
@@ -19,7 +19,7 @@ public class GAExample {
                 c[i][j] = random.nextDouble() + 1;
             }
         }
-        getOptimalSolution(c, n);
+        //getOptimalSolution(c, n);
         int numberOfSolution = 100;
         List<List<Integer>> solutions = new ArrayList<>(numberOfSolution);
         for (int i = 0; i < numberOfSolution; i++) {
@@ -60,8 +60,8 @@ public class GAExample {
                         index2 = random.nextInt(numberOfSolution);
                     }
                     //скрещивание
-                    List<Integer> child1 = crossover(solutions.get(index1), solutions.get(index2));
-                    List<Integer> child2 = crossover(solutions.get(index2), solutions.get(index1));
+                    List<Integer> child1 = crossover(solutions.get(index2));
+                    List<Integer> child2 = crossover(solutions.get(index1));
                     Collections.copy(solutions.get(index1), child1);
                     Collections.copy(solutions.get(index2), child2);
                 }
@@ -111,7 +111,7 @@ public class GAExample {
         }
     }
 
-    private static void getOptimalSolution(double[][] c, int n) {
+    /*private static void getOptimalSolution(double[][] c, int n) {
         double[] doubles = new double[n * n];
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
@@ -154,11 +154,11 @@ public class GAExample {
         } catch (IloException e) {
             System.out.println("Cplex error");
         }
-    }
+    }*/
 
-    private static List<Integer> crossover(List<Integer> parent1, List<Integer> parent2) {
+    private static List<Integer> crossover(List<Integer> parent) {
         Random random = new Random();
-        int n = parent1.size();
+        int n = parent.size();
         int index1 = random.nextInt(n);
         int index2 = random.nextInt(n);
         int diff = Math.abs(index1 - index2);
@@ -172,18 +172,17 @@ public class GAExample {
             index2 = w;
         }
         List<Integer> child = new ArrayList<>(n);
-        for (int i = 0; i < n; i++){
-            child.add(0);
+
+        for (int i = index2 + 1; i < n; i++) {
+            child.add(parent.get(i));
         }
         for (int i = 0; i < index1; i++) {
-            child.set(i, parent1.get(i));
+            child.add(parent.get(i));
         }
         for (int i = index1; i <= index2; i++) {
-            child.set(i, parent2.get(i));
+            child.add(parent.get(i));
         }
-        for (int i = index2 + 1; i < n; i++) {
-            child.set(i, parent1.get(i));
-        }
+
         return child;
     }
 

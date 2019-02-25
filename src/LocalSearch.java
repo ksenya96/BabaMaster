@@ -1,10 +1,4 @@
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 public class LocalSearch extends Heuristics {
     public static void main(String[] args) {
@@ -31,20 +25,15 @@ public class LocalSearch extends Heuristics {
 
         int[] p = setOperationsTimes(m);
 
-        int numberOfSolutions = 10;
+        //начальная популяция
+        int numberOfSolutions = 100;
         Random random = new Random();
-        List<List<List<Byte>>> x = new ArrayList<>(numberOfSolutions);
+        List<List<Integer>> solutions = new ArrayList<>(numberOfSolutions);
         for (int i = 0; i < numberOfSolutions; i++) {
-            x.add(new ArrayList<>(m));
-            for (int j = 0; j < m; j++) {
-                x.get(i).add(new ArrayList<>(T));
-                for (int k = 0; k < T; k++) {
-                    x.get(i).get(j).add((byte)0);
-                }
-            }
+            solutions.add(new ArrayList<>(m));
         }
 
-        Map<Integer, ArrayList<Integer>> passedSlots = new HashMap<>();
+        /*Map<Integer, ArrayList<Integer>> passedSlots = new HashMap<>();
         for (int i = 0; i < m; i++) {
             passedSlots.put(i, new ArrayList<>());
         }
@@ -56,13 +45,13 @@ public class LocalSearch extends Heuristics {
                     passedSlots.get(k).add(i);
                 }
             }
-        }
+        }*/
 
         //генерация случайных решений
         for (int cnt = 0; cnt < numberOfSolutions; cnt++) {
             for (int i = 0; i < m; i++) {
                 int slot = random.nextInt(T);
-                x.get(cnt).get(i).set(slot, (byte)random.nextInt(2));
+                solutions.get(cnt).add(slot);
             }
         }
 
@@ -70,7 +59,7 @@ public class LocalSearch extends Heuristics {
         double[] fitnessFunctionValues = new double[numberOfSolutions + 1];
         for (int cnt = 0; cnt < numberOfSolutions; cnt++) {
             fitnessFunctionValues[cnt] =
-                    calculateFitnessFunction(T, delta, r, A, B, c, m, patientsAndGroups, d, w, p, x.get(cnt));
+                    calculateFitnessFunction(T, delta, r, A, B, c, m, patientsAndGroups, d, w, p, solutions.get(cnt));
         }
 
         /*for (int i = 0; i < numberOfSolutions; i++) {
@@ -85,94 +74,120 @@ public class LocalSearch extends Heuristics {
             System.out.println(fitnessFunctionValues[i] + " " + patients);
         }*/
 
-        for (int iter = 0; iter < 1000; iter++) {
-            //вычисление вероятностей выбора решений из популяции
-            double sumFitnessFunctionValues = Arrays.stream(fitnessFunctionValues).sum() - fitnessFunctionValues[numberOfSolutions];
-            double[] pr = Arrays.stream(fitnessFunctionValues).map((v) -> v / sumFitnessFunctionValues).limit(numberOfSolutions).toArray();
-            int parentSolution1 = getRandomValue(pr);
-            int parentSolution2 = getRandomValue(pr);
-            //System.out.println(parentSolution1 + " " + parentSolution2);
+        double bestCost = -1;
+        int bestIndex = -1;
+        List<Integer> bestSolution;
 
-            //скрещивание
-            List<List<Byte>> newSolution = crossover(T, m, x, parentSolution1, parentSolution2);
+        //evaluate
+        for (int i = 0; i < solutions.size(); i++) {
+            double cost = calculateFitnessFunction(T, delta, r, A, B, c, m, patientsAndGroups, d, w, p, solutions.get(i));
+            if (cost > bestCost) {
+                bestCost = cost;
+                bestIndex = i;
+                System.out.println("Best cost " + bestCost + " iteration " + 1 + solutions.get(bestIndex));
+            }
+        }
 
-            //мутация
-            double randomParameter = 0.3;
-            mutation(T, m, newSolution, randomParameter);
-            x.add(newSolution);
-            fitnessFunctionValues[numberOfSolutions] = calculateFitnessFunction(T, delta, r, A, B, c, m, patientsAndGroups, d, w, p, newSolution);
-            System.out.println(fitnessFunctionValues[numberOfSolutions]);
-
-            int minIndex = 0;
-            for (int i = 1; i < numberOfSolutions + 1; i++) {
-                if (fitnessFunctionValues[i] < fitnessFunctionValues[minIndex]) {
-                    minIndex = i;
+        for (int cnt = 0; cnt < 100; cnt++) {
+            bestSolution = new ArrayList<>();
+            for (int i = 0; i < m; i++) {
+                bestSolution.add(0);
+            }
+            Collections.copy(bestSolution, solutions.get(bestIndex));
+            //выбираем родителей
+            for (List<Integer> solution: solutions) {
+                int pr = random.nextInt(100);
+                if (pr < 50) {
+                    int index1 = random.nextInt(numberOfSolutions);
+                    int index2 = random.nextInt(numberOfSolutions);
+                    while (index1 == index2) {
+                        index2 = random.nextInt(numberOfSolutions);
+                    }
+                    //скрещивание
+                    List<Integer> child1 = crossover(solutions.get(index2));
+                    List<Integer> child2 = crossover(solutions.get(index1));
+                    Collections.copy(solutions.get(index1), child1);
+                    Collections.copy(solutions.get(index2), child2);
                 }
             }
-            x.remove(minIndex);
-            fitnessFunctionValues[minIndex] = fitnessFunctionValues[numberOfSolutions];
-            //System.out.println(Arrays.stream(fitnessFunctionValues).max().getAsDouble());
+
+            //поставить куда-нибудь лучшее решение
+            int index = random.nextInt(numberOfSolutions);
+            while (index == bestIndex) {
+                index = random.nextInt(numberOfSolutions);
+            }
+            Collections.copy(solutions.get(index), bestSolution);
+
+            //evaluate
+            for (int i = 0; i < solutions.size(); i++) {
+                double cost = calculateFitnessFunction(T, delta, r, A, B, c, m, patientsAndGroups, d, w, p, solutions.get(i));
+                if (cost > bestCost) {
+                    bestCost = cost;
+                    bestIndex = i;
+                    System.out.println("Best cost " + bestCost + " iteration " + cnt + solutions.get(bestIndex));
+                }
+            }
+            //отбор
+            selection(solutions, T, delta, r, A, B, c, m, patientsAndGroups, d, w, p);
         }
 
     }
 
-    private static List<List<Byte>> crossover(int T, int m, List<List<List<Byte>>> x, int parentSolution1, int parentSolution2) {
-        List<List<Byte>> newSolution = new ArrayList<>(m);
-        for (int i = 0; i < m; i++) {
-            newSolution.add(new ArrayList<>(T));
-            for (int j = 0; j < T; j++) {
-                newSolution.get(i).add((byte)0);
-            }
-        }
+    private static void selection(List<List<Integer>> solutions, int T, int[] delta, int[] r, int[] A, int[] B, int[] c, int m,
+                                  int[] patientsAndGroups, int[] d, double[] w, int[] p) {
+        int numberOfSolutions = solutions.size();
         Random random = new Random();
-        /*for (int i = 0; i < m; i++) {
-            int parent1Flag = -1;
-            int parent2Flag = -1;
-            for (int j = 0; j < T; j++){
-                if (x.get(parentSolution1).get(i).get(j) == 1) {
-                    parent1Flag = j;
+        for (int i = 0; i < numberOfSolutions; i++) {
+            int pr = random.nextInt(100);
+            if (pr < 20) {
+                int index1 = random.nextInt(numberOfSolutions);
+                int index2 = random.nextInt(numberOfSolutions);
+                while (index1 == index2) {
+                    index2 = random.nextInt(numberOfSolutions);
                 }
-                if (x.get(parentSolution2).get(i).get(j) == 1) {
-                    parent2Flag = j;
+                double cost1 = calculateFitnessFunction(T, delta, r, A, B, c, m, patientsAndGroups, d, w, p, solutions.get(index1));
+                double cost2 = calculateFitnessFunction(T, delta, r, A, B, c, m, patientsAndGroups, d, w, p, solutions.get(index2));
+                if (cost1 > cost2) {
+                    Collections.copy(solutions.get(index2), solutions.get(index1));
+                } else {
+                    Collections.copy(solutions.get(index1), solutions.get(index2));
                 }
-            }
-            if (random.nextInt(2) == 0) {
-                if (parent1Flag > -1) {
-                    newSolution.get(i).set(parent1Flag, (byte)1);
-                }
-            } else {
-                if (parent2Flag > -1) {
-                    newSolution.get(i).set(parent2Flag, (byte)1);
-                }
-            }
-        }*/
-        int k = random.nextInt(m - 1);
-        for (int i = 0; i <= k; i++) {
-            for (int j = 0; j < T; j++) {
-                newSolution.get(i).set(j, x.get(parentSolution1).get(i).get(j));
             }
         }
-        for (int i = k + 1; i < m; i++) {
-            for (int j = 0; j < T; j++) {
-                newSolution.get(i).set(j, x.get(parentSolution2).get(i).get(j));
-            }
-        }
-        return newSolution;
     }
 
-    private static void mutation(int T, int m, List<List<Byte>> newSolution, double randomParameter) {
-        for (int i = 0; i < m; i++) {
-            for (int j = 0; j < T; j++) {
-                if (newSolution.get(i).get(j) == 1 && getRandomValue(randomParameter, 1 - randomParameter) == 0) {
-                    //инверсия
-                    newSolution.get(i).set(j, (byte)0); //(byte)Math.abs(newSolution[i][j] - 1);
-                }
-            }
+    private static List<Integer> crossover(List<Integer> parent) {
+        Random random = new Random();
+        int n = parent.size();
+        int index1 = random.nextInt(n);
+        int index2 = random.nextInt(n);
+        int diff = Math.abs(index1 - index2);
+        while (index1 == index2 || diff + 1 >= n) {
+            index2 = random.nextInt(n);
+            diff = Math.abs(index1 - index2);
         }
+        if (index2 < index1) {
+            int w = index1;
+            index1 = index2;
+            index2 = w;
+        }
+        List<Integer> child = new ArrayList<>(n);
+
+        for (int i = index2 + 1; i < n; i++) {
+            child.add(parent.get(i));
+        }
+        for (int i = 0; i < index1; i++) {
+            child.add(parent.get(i));
+        }
+        for (int i = index1; i <= index2; i++) {
+            child.add(parent.get(i));
+        }
+
+        return child;
     }
 
     private static double calculateFitnessFunction(int T, int[] delta, int[] r, int[] A, int[] B, int[] c, int m,
-                                                   int[] patientsAndGroups, int[] d, double[] w, int[] p, List<List<Byte>> x) {
+                                                   int[] patientsAndGroups, int[] d, double[] w, int[] p, List<Integer> solution) {
         int[] z = new int[T];
         for (int i = 0; i < T; i++) {
             for (int k = 0; k < m; k++) {
@@ -180,7 +195,9 @@ public class LocalSearch extends Heuristics {
                     d[getGroupByIndex(k, patientsAndGroups)] - p[k] >= A[i]) {
                     int duration = 0;
                     for (int l = k; l < m; l++) {
-                        duration += p[l] * x.get(l).get(i);
+                        if (solution.get(l) == i) {
+                            duration += p[l];
+                        }
                         int slotResidue = Math.min(B[i], d[getGroupByIndex(l, patientsAndGroups)]) -
                                           Math.max(A[i], r[getGroupByIndex(k, patientsAndGroups)]) - duration;
                         if (slotResidue < 0) {
@@ -203,22 +220,14 @@ public class LocalSearch extends Heuristics {
             double value = 0;
             for (int i = 0; i < m; i++) {
                 for (int j = 0; j < T; j++) {
-                    value += w[getGroupByIndex(i, patientsAndGroups)] * x.get(i).get(j);
+                    if (solution.get(i) == j) {
+                        value += w[getGroupByIndex(i, patientsAndGroups)];
+                    }
                 }
             }
             return value;
         } else {
             return 0;
         }
-    }
-
-    static int getRandomValue(double... pr) {
-        double r = Math.random();
-        int i = 0;
-        double s = pr[0];
-        while (i < pr.length && !(r < s)) {
-            s += pr[++i];
-        }
-        return i;
     }
 }

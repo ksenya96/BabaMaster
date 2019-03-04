@@ -3,6 +3,7 @@ import ilog.cplex.IloCplex;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 
 public class Det {
 
@@ -14,8 +15,8 @@ public class Det {
 
     static int shifts = 2;
     static int weeks = 1;
-    static int days = 2;
-    static int rooms = 5;
+    static int days = 5;
+    static int rooms = 10;
     static int delta1 = 30; //порог увеличения для интервалов первой смены
     static int delta2 = 90; //второй смены
     static int C = 0; //порог стоимости увеличения
@@ -48,7 +49,7 @@ public class Det {
     static int[] setNumberOfPatientsInGroups(int G) {
         int[] n = new int[G];
         for (int i = 0; i < G; i++) {
-            n[i] = 5; //rooms * 5;//random.nextInt(rooms) + 1;
+            n[i] = 15; //rooms * 5;//random.nextInt(rooms) + 1;
         }
         return n;
     }
@@ -94,13 +95,14 @@ public class Det {
 
     static int[] setOperationsTimes(int m) {
         int[] p = new int[m];
+        Random random = new Random();
         for (int i = 0; i < m; i++) {
             /*p[i] = random.nextInt(2);
             if (p[i] == 0)
                 p[i] = 20;
             else
                 p[i] = 100;*/
-            p[i] = 200;
+            p[i] = random.nextInt(180 + 11) + 10;
         }
         return p;
     }
@@ -121,6 +123,7 @@ public class Det {
         return patientsAndGroups[index];
     }
 
+    static int[] p;
     public static void main(String[] args) {
         int T = shifts * weeks * days * rooms; //кол-во временных интервалов (2 смены, 5 дней в неделю, 3 комнаты)
         System.out.println("Кол-во временных интервалов: T = " + T);
@@ -142,7 +145,7 @@ public class Det {
 
         double[] w = setOperationsWeights(n); //веса групп операций
 
-        int[] p = setOperationsTimes(m);
+        p = setOperationsTimes(m);
 
         try {
             IloCplex cplex = new IloCplex();
@@ -176,20 +179,20 @@ public class Det {
             if (cplex.solve()) {
                 cplex.output().println(cplex.getStatus());
                 cplex.output().println(cplex.getObjValue());
-                double[] resX = cplex.getValues(x);
+                /*double[] resX = cplex.getValues(x);
                 int zu = 0;
                 for (int i = 0; i < m; i++) {
                     for (int j = 0; j < T; j++) {
                         if ((int) resX[i * T + j] == 1) {
                             zu++;
                         }
-                        //System.out.print((int)resX[i * T + j]);
-                        //System.out.println("Variable x[" + (i + 1) + "][" + (j + 1) + "]: Value = " + resX[i * T + j]);
+                        System.out.print((int)resX[i * T + j]);
+                        System.out.println("Variable x[" + (i + 1) + "][" + (j + 1) + "]: Value = " + resX[i * T + j]);
                     }
                     //System.out.println();
                 }
                 System.out.println("количество назначенных пациентов " + zu);
-                System.out.println(cplex.getMIPRelativeGap());
+                System.out.println(cplex.getMIPRelativeGap());*/
 
                 /*double[] resZ = cplex.getValues(z);
                 for (int i = 0; i < T; i++) {

@@ -1,7 +1,7 @@
-/*import ilog.concert.IloException;
+import ilog.concert.IloException;
 import ilog.concert.IloIntVar;
 import ilog.concert.IloLinearIntExpr;
-import ilog.cplex.IloCplex;*/
+import ilog.cplex.IloCplex;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10,7 +10,7 @@ import java.util.Random;
 
 public class GAExample extends Heuristics {
     public static void main(String[] args) {
-        int n = 5;
+        int n = 10;
         double[][] c = new double[n][n];
 
         Random random = new Random();
@@ -19,7 +19,7 @@ public class GAExample extends Heuristics {
                 c[i][j] = random.nextDouble() + 1;
             }
         }
-        //getOptimalSolution(c, n);
+        getOptimalSolution(c, n);
         int numberOfSolution = 100;
         List<List<Integer>> solutions = new ArrayList<>(numberOfSolution);
         for (int i = 0; i < numberOfSolution; i++) {
@@ -111,7 +111,7 @@ public class GAExample extends Heuristics {
         }
     }
 
-    /*private static void getOptimalSolution(double[][] c, int n) {
+    private static void getOptimalSolution(double[][] c, int n) {
         double[] doubles = new double[n * n];
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
@@ -154,7 +154,7 @@ public class GAExample extends Heuristics {
         } catch (IloException e) {
             System.out.println("Cplex error");
         }
-    }*/
+    }
 
     private static List<Integer> crossover(List<Integer> parent) {
         Random random = new Random();

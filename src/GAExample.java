@@ -3,6 +3,10 @@ import ilog.concert.IloIntVar;
 import ilog.concert.IloLinearIntExpr;
 import ilog.cplex.IloCplex;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -10,83 +14,94 @@ import java.util.Random;
 
 public class GAExample extends Heuristics {
     public static void main(String[] args) {
-        int n = 10;
-        double[][] c = new double[n][n];
-
-        Random random = new Random();
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                c[i][j] = random.nextDouble() + 1;
-            }
+        PrintWriter writerExact = null;
+        PrintWriter writerGa = null;
+        try {
+            writerExact = new PrintWriter(new OutputStreamWriter(new FileOutputStream("exact.txt")));
+            writerGa = new PrintWriter(new OutputStreamWriter(new FileOutputStream("ga.txt")));
+        } catch (IOException e) {
         }
-        getOptimalSolution(c, n);
-        int numberOfSolution = 100;
-        List<List<Integer>> solutions = new ArrayList<>(numberOfSolution);
-        for (int i = 0; i < numberOfSolution; i++) {
-            solutions.add(new ArrayList<>());
-            for (int j = 0; j < n; j++) {
-                solutions.get(i).add(j);
-            }
-            Collections.shuffle(solutions.get(i));
-        }
+        for (int n = 5; n <= 100; n += 5) {
+            double[][] c = new double[n][n];
 
-        double bestCost = -1;
-        int bestIndex = -1;
-        List<Integer> bestSolution;
-
-        //evaluate
-        for (int i = 0; i < solutions.size(); i++) {
-            double cost = getFitnessFunctionValue(c, solutions.get(i));
-            if (cost > bestCost) {
-                bestCost = cost;
-                bestIndex = i;
-                System.out.println("Best cost " + bestCost + " iteration " + 1 + solutions.get(bestIndex));
-            }
-        }
-
-        for (int cnt = 1; cnt < 100; cnt++) {
-            bestSolution = new ArrayList<>(n);
+            Random random = new Random();
             for (int i = 0; i < n; i++) {
-                bestSolution.add(0);
-            }
-            Collections.copy(bestSolution, solutions.get(bestIndex));
-            //выбираем родителей
-            for (List<Integer> solution: solutions) {
-                int pr = random.nextInt(100);
-                if (pr < 50) {
-                    int index1 = random.nextInt(numberOfSolution);
-                    int index2 = random.nextInt(numberOfSolution);
-                    while (index1 == index2) {
-                        index2 = random.nextInt(numberOfSolution);
-                    }
-                    //скрещивание
-                    List<Integer> child1 = crossover(solutions.get(index2));
-                    List<Integer> child2 = crossover(solutions.get(index1));
-                    Collections.copy(solutions.get(index1), child1);
-                    Collections.copy(solutions.get(index2), child2);
+                for (int j = 0; j < n; j++) {
+                    c[i][j] = random.nextDouble() + 1;
                 }
             }
-
-            //поставить куда-нибудь лучшее решение
-            int index = random.nextInt(numberOfSolution);
-            while (index == bestIndex) {
-                index = random.nextInt(numberOfSolution);
+            writerExact.println(getOptimalSolution(c, n));
+            int numberOfSolution = 100;
+            List<List<Integer>> solutions = new ArrayList<>(numberOfSolution);
+            for (int i = 0; i < numberOfSolution; i++) {
+                solutions.add(new ArrayList<>());
+                for (int j = 0; j < n; j++) {
+                    solutions.get(i).add(j);
+                }
+                Collections.shuffle(solutions.get(i));
             }
-            Collections.copy(solutions.get(index), bestSolution);
+
+            double bestCost = Double.MAX_VALUE;
+            int bestIndex = -1;
+            List<Integer> bestSolution;
 
             //evaluate
             for (int i = 0; i < solutions.size(); i++) {
                 double cost = getFitnessFunctionValue(c, solutions.get(i));
-                if (cost > bestCost) {
+                if (cost < bestCost) {
                     bestCost = cost;
                     bestIndex = i;
-                    System.out.println("Best cost " + bestCost + " iteration " + cnt + solutions.get(bestIndex));
+                    System.out.println("Best cost " + bestCost + " iteration " + 1 + solutions.get(bestIndex));
                 }
             }
-            //отбор
-            selection(solutions, c);
+
+            for (int cnt = 1; cnt < 100; cnt++) {
+                bestSolution = new ArrayList<>(n);
+                for (int i = 0; i < n; i++) {
+                    bestSolution.add(0);
+                }
+                Collections.copy(bestSolution, solutions.get(bestIndex));
+                //выбираем родителей
+                for (List<Integer> solution : solutions) {
+                    int pr = random.nextInt(100);
+                    if (pr < 50) {
+                        int index1 = random.nextInt(numberOfSolution);
+                        int index2 = random.nextInt(numberOfSolution);
+                        while (index1 == index2) {
+                            index2 = random.nextInt(numberOfSolution);
+                        }
+                        //скрещивание
+                        List<Integer> child1 = crossover(solutions.get(index2));
+                        List<Integer> child2 = crossover(solutions.get(index1));
+                        Collections.copy(solutions.get(index1), child1);
+                        Collections.copy(solutions.get(index2), child2);
+                    }
+                }
+
+                //поставить куда-нибудь лучшее решение
+                int index = random.nextInt(numberOfSolution);
+                while (index == bestIndex) {
+                    index = random.nextInt(numberOfSolution);
+                }
+                Collections.copy(solutions.get(index), bestSolution);
+
+                //evaluate
+                for (int i = 0; i < solutions.size(); i++) {
+                    double cost = getFitnessFunctionValue(c, solutions.get(i));
+                    if (cost < bestCost) {
+                        bestCost = cost;
+                        bestIndex = i;
+                        System.out.println("Best cost " + bestCost + " iteration " + cnt + solutions.get(bestIndex));
+                    }
+                }
+                //отбор
+                selection(solutions, c);
+            }
+            writerGa.println(bestCost);
+            //System.out.println(solutions.stream().mapToDouble((solution) -> getFitnessFunctionValue(c, solution)).max());
         }
-        //System.out.println(solutions.stream().mapToDouble((solution) -> getFitnessFunctionValue(c, solution)).max());
+        writerExact.close();
+        writerGa.close();
     }
 
     private static void selection(List<List<Integer>> solutions, double[][] c) {
@@ -102,7 +117,7 @@ public class GAExample extends Heuristics {
                 }
                 double cost1 = getFitnessFunctionValue(c, solutions.get(index1));
                 double cost2 = getFitnessFunctionValue(c, solutions.get(index2));
-                if (cost1 > cost2) {
+                if (cost1 < cost2) {
                     Collections.copy(solutions.get(index2), solutions.get(index1));
                 } else {
                     Collections.copy(solutions.get(index1), solutions.get(index2));
@@ -111,7 +126,7 @@ public class GAExample extends Heuristics {
         }
     }
 
-    private static void getOptimalSolution(double[][] c, int n) {
+    private static double getOptimalSolution(double[][] c, int n) {
         double[] doubles = new double[n * n];
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
@@ -121,7 +136,7 @@ public class GAExample extends Heuristics {
         try {
             IloCplex cplex = new IloCplex();
             IloIntVar[] x = cplex.boolVarArray(n * n);
-            cplex.addMaximize(cplex.scalProd(x, doubles));
+            cplex.addMinimize(cplex.scalProd(x, doubles));
             for (int i = 0; i < n; i++) {
                 IloLinearIntExpr constr1 = cplex.linearIntExpr();
                 IloLinearIntExpr constr2 = cplex.linearIntExpr();
@@ -131,11 +146,11 @@ public class GAExample extends Heuristics {
                 }
                 cplex.addEq(1, constr1);
                 cplex.addEq(1, constr2);
-
-                if (cplex.solve()) {
-                    System.out.println(cplex.getStatus());
-                    System.out.println(cplex.getObjValue());
-                    double[] res = cplex.getValues(x);
+            }
+            if (cplex.solve()) {
+                System.out.println(cplex.getStatus());
+                return cplex.getObjValue();
+                    /*double[] res = cplex.getValues(x);
                     for (int k = 0; k < n; k++) {
                         for (int j = 0; j < n; j++) {
                             System.out.print((int) res[k * n + j]);
@@ -147,13 +162,13 @@ public class GAExample extends Heuristics {
                             System.out.print(c[k][j] + " ");
                         }
                         System.out.println();
-                    }
-                }
+                    }*/
             }
 
         } catch (IloException e) {
             System.out.println("Cplex error");
         }
+        return 0;
     }
 
     private static List<Integer> crossover(List<Integer> parent) {
@@ -176,10 +191,10 @@ public class GAExample extends Heuristics {
         for (int i = index2 + 1; i < n; i++) {
             child.add(parent.get(i));
         }
-        for (int i = 0; i < index1; i++) {
+        for (int i = index1; i <= index2; i++) {
             child.add(parent.get(i));
         }
-        for (int i = index1; i <= index2; i++) {
+        for (int i = 0; i < index1; i++) {
             child.add(parent.get(i));
         }
 
